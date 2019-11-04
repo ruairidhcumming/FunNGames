@@ -25,7 +25,11 @@ public class DriverAgent : Agent {
            foreach (GameObject w in GameObject.FindGameObjectsWithTag("wall")){
             walls.Add(w);
         };
-        GameObject nearest = walls[0];//assumes there are two walls bad ruairidh
+        if (walls.Count <2 ){//check that there are at least two walls. TODO make this dynamic
+         // print("no walls");
+            return (null);
+        }
+        GameObject nearest = walls[0];
        
         foreach (GameObject w in walls) {
             
@@ -83,15 +87,26 @@ public class DriverAgent : Agent {
         AddVectorObs(Vehicle.transform.forward);
         AddVectorObs(Mathf.Min(distanceTo(Target),10)/10);
         Debug.DrawRay(Vehicle.transform.position, directionTo(Target) * distanceTo(Target), Color.green);
-        foreach (GameObject wall in GetClosestWalls())
+        if (GetClosestWalls() != null)
         {
-            
-            AddVectorObs((Vehicle.transform.position-wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position)).normalized);
-            AddVectorObs(Mathf.Min(
-                (Vehicle.transform.position - wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position)).sqrMagnitude,10)/10);
-            Debug.DrawLine(Vehicle.transform.position, wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position), Color.blue);
-            
+            foreach (GameObject wall in GetClosestWalls())
+            {
+
+                AddVectorObs((Vehicle.transform.position - wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position)).normalized);
+                AddVectorObs(Mathf.Min(
+                    (Vehicle.transform.position - wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position)).sqrMagnitude, 10) / 10);
+                Debug.DrawLine(Vehicle.transform.position, wall.GetComponent<Collider>().ClosestPointOnBounds(Vehicle.transform.position), Color.blue);
+
+            }
         }
+        else {
+            AddVectorObs(new Vector3(0, 0, 0));
+            AddVectorObs(0.0f);
+            AddVectorObs(new Vector3(0, 0, 0));
+            AddVectorObs( 0.0f); 
+        }
+
+
     }
     public override void AgentAction(float[] vectorAction, string textAction)
     {   
@@ -153,7 +168,7 @@ public class DriverAgent : Agent {
         Target.transform.localScale = new Vector3(targetsize, targetsize, targetsize);
 
         targetsize = academy.resetParameters["target_size"];
-
+        putOnSurface(Target);
 
     }
     void OnTriggerEnter(Collider col)
@@ -169,7 +184,7 @@ public class DriverAgent : Agent {
             {
                 MovePickup();
             }
-            if (academy.resetParameters["maxscore"] == 1.0)
+            if (academy.resetParameters["maxscore"] <= 1.0)
             {
                
                 Done();                
@@ -192,7 +207,7 @@ public class DriverAgent : Agent {
             float rot = academy.resetParameters["veh_rotation"];
 
 
-            Vehicle.transform.position = Vehicle.transform.parent.position + new Vector3(0f, 2f, 0f);
+            Vehicle.transform.position = Vehicle.transform.parent.position + new Vector3(500f, 2f, 500f);
             Vehicle.transform.eulerAngles = new Vector3(0f, Random.Range(0f, rot), 0f);
         }
     }
@@ -221,8 +236,55 @@ public class DriverAgent : Agent {
         float rot = academy.resetParameters["veh_rotation"];
         
        
-        Vehicle.transform.position = Vehicle.transform.parent.position+new Vector3(0f,2f,0f);
+        Vehicle.transform.position = Vehicle.transform.parent.position+new Vector3(500f,200f,500f);
+        
         Vehicle.transform.eulerAngles = new Vector3(0f, Random.Range(0f,rot), 0f);
-       
-	}
+        Vehicle.GetComponent<Rigidbody>().velocity = new Vector3(0, 0, 0);
+        Vehicle.GetComponent<Rigidbody>().angularVelocity = new Vector3(0, 0, 0);
+        putOnSurface(Vehicle);
+    }
+    public void putOnSurface(GameObject me) {
+        print("call to POS");
+        LayerMask mask = 0;
+        float rad; 
+        if (me.GetComponent<Collider>() != null)
+        {
+            print("using main collider");
+            rad = me.GetComponent<Collider>().bounds.extents.y;
+        }
+        else if (me.transform.GetChild(0).GetComponent<Collider>() != null)
+        {
+            print("using child collider");
+            rad = me.transform.GetChild(0).GetComponent<Collider>().bounds.extents.y;
+        }
+        else
+        {
+            print("no collider");
+            rad = 1f;
+        }
+        RaycastHit hit;
+        Ray upray = new Ray(me.transform.position, Vector3.up);
+        Ray dnray = new Ray(me.transform.position, Vector3.down);
+        if (Physics.Raycast(upray, out hit, Mathf.Infinity))
+        {
+            print("upray level 1");
+            if (hit.collider != null)
+            {
+                print("upray level 2");
+                // this is where the gameobject is actually put on the ground
+                me.transform.position = new Vector3(me.transform.position.x, hit.point.y + rad+10f, me.transform.position.z);
+            }
+        }
+        else if (Physics.Raycast(dnray, out hit, Mathf.Infinity))
+        {
+            print("dnray level 1");
+            if (hit.collider != null)
+            {
+                print("dnray level 2");
+                // this is where the gameobject is actually put on the ground
+                me.transform.position = new Vector3(me.transform.position.x, hit.point.y + rad+10f, me.transform.position.z);
+            }
+        }
+
+    }
 }

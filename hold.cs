@@ -29,7 +29,7 @@ public class hold : MonoBehaviour {
             col.transform.position = grabber.transform.position + new Vector3(0f, 0f, 0f);// + col.transform.localScale.magnitude);
             col.transform.rotation = grabber.transform.rotation;
             col.transform.SetParent(grabber.transform);
-            script = GetComponent<Behaviour>("Rotator");
+            script = GetComponent<rotator>();
             script.enabled = false;
             CarriedGameObject = col.gameObject;
         }
